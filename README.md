@@ -6,12 +6,12 @@ In this tutorial we are going to use two virtual machines: A Debian 9 which will
 This are the versions of the software used:
 
   - Splunk Enterprise 8.1.2
-  - Splunk UniversalForwarder
-  - Sysmon 13.1
+  - Splunk UniversalForwarder 8.1.2
+  - Sysmon v13.01
 
 ## Splunk Installation
 
-First we download the latest version of Splunk Enterprise (which can also be done via command line)
+First, in our **Debian 9** download the latest version of Splunk Enterprise (which can also be done via command line)
 
   - https://www.splunk.com/en_us/download/splunk-enterprise/thank-you-enterprise.html
 
@@ -96,17 +96,130 @@ One way to check that this port is indeed open and working correctly is to perfo
 telnet 127.0.0.1 9001
 ```
 
+In order to be able to efficeinty view and analyse logs we are going to use the Splunk App "Splunk Add-On for Microsoft Sysmon 10.6.2" that will provide a data input and CIM-compliant field extractions for Microsoft Sysmon. Donwload from the Splunkbase website:
+
+  - https://splunkbase.splunk.com/app/1914/
+
+To install this App on the Splunk Enterprise, go to the following route
+
+```
+Settings > Apps > Install app from file
+```
+
+We can add the file in TAR format, or SPL or GZ format, as we wish. After we add it, it will appear in the applications menu.
+
+```
+"Microsoft Sysmon Add-on" was installed successfully
+```
+
 ## Sysmon Installation & Configuration
+
+Sysmon is a Windows system service that logs system activity to the Windows event log. It is a very powerful logging system but generates a lot of noise if not properly configured.
+
+Switch to the **Windows 10 client** to be monitored and download Sysmon.
+
+  - https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon
+
+Install Sysmon in the x64 version and accept the license
+
+```
+Sysmon64.exe -accepteula -i
+```
+
+Check that the service is up
+
+```
+Sysmon64
+```
+
+Choose which configuration to use in Sysmon, currently the two most popular are. 
+SwiftOnSecurity is a complete configuration but less up to date, Olafhartong is more up to date but is intended to be modular needing more maintenance
+
+  - https://github.com/SwiftOnSecurity/sysmon-config
+  - https://github.com/olafhartong/sysmon-modular
+
+Apply the SwiftOnSecurity configuration.
+
+```
+Sysmon64  -c sysmonconfig-export.xml
+```
+
+And check, by performing a dump of the current configuration, if it has been applied correctly:
+
+```
+Sysmon64 -c | more
+```
 
 ## Adding UniversalForwarders
 
+UniversalForwarders provide reliable, secure data collection from remote sources and forward that data into Splunk software for indexing and consolidation.
 
+At the **Windows 10 client** , download Splunk's Universal Forwarder
 
+  - https://www.splunk.com/en_us/download/universal-forwarder/thank-you-universalforwarder.html
 
+It can be done by executing the following wget:
 
+```
+wget -O splunkforwarder-8.1.2-545206cc9f70-x64-release.msi 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=windows&version=8.1.2&product=universalforwarder&filename=splunkforwarder-8.1.2-545206cc9f70-x64-release.msi&wget=true'
+```
 
+Run the MSI file from the command console with administrator permissions. It's required to do it in this way to access to certain log files in some routes.
 
+```
+.\splunkforwarder-8.1.2-545206cc9f70-x64-release.msi
+```
 
+The program will start and guide us through an installation wizard. It is not necessary to select anything in this installation wizard as we will later add certain configuration files that will provide everything needed to send logs to Splunk.
+If the default installation directory has not been modified these are the two important configuration files
 
+```
+C:\Program Files\SplunkUniversalForwarder\etc\apps\SplunkUniversalForwarder\local\inputs.conf
+C:\Program Files\SplunkUniversalForwarder\etc\system\local\outputs.conf
+```
 
+There is a lot of information in the following links
 
+  - https://docs.splunk.com/Documentation/Forwarder/8.1.2/Forwarder/Configureforwardingwithoutputs.conf
+  - 
+
+The **inputs.conf** controls how the forwarder collects data. Is required to specify the WinEventLog channel that is going to be monitored.
+Example:
+
+```
+
+[WinEventLog://Security]
+checkpointInterval = 5
+current_only = 0
+disabled = 0
+start_from = oldest
+
+[WinEventLog://Microsoft-Windows-Sysmon/Operational]
+checkpointInterval = 5
+current_only = 0
+disabled = 0
+start_from = oldest
+```
+
+The **outputs.conf** file defines how forwarders send data to receivers. Is required to specify the IP, or Hostname, and port of the server where this information is to be sent.
+Example:
+
+```
+
+[tcpout]
+defaultGroup = default-autolb-group
+
+[tcpout:default-autolb-group]
+server = 192.168.52.154:9001
+
+[tcpout-server://192.168.52.154:9001]
+```
+
+In order to make sure that the configuration was applied correctly, restart the service:
+
+```
+C:\Program Files\SplunkUniversalForwarder\bin\
+splunk.exe restart
+```
+
+Check on Splunk in the sourcetype
