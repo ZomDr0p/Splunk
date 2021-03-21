@@ -222,4 +222,10 @@ C:\Program Files\SplunkUniversalForwarder\bin\
 splunk.exe restart
 ```
 
-Check on Splunk in the sourcetype
+Check on Splunk if logs are being received correctly in the sourcetype:
+```
+sourcetype="WinEventLog:Microsoft-Windows-Sysmon/Operational"
+```
+
+Finally, you now have a small lab to collect your Sysmon logs in Splunk in order to create Use Cases.
+I hope the tutorial has been useful for someone!
