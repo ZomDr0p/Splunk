@@ -171,7 +171,7 @@ Run the MSI file from the command console with administrator permissions. It's r
 ```
 
 The program will start and guide us through an installation wizard. It is not necessary to select anything in this installation wizard as we will later add certain configuration files that will provide everything needed to send logs to Splunk.
-If the default installation directory has not been modified these are the two important configuration files
+If the default installation directory has not been modified these are the two important configuration files.
 
 ```
 C:\Program Files\SplunkUniversalForwarder\etc\apps\SplunkUniversalForwarder\local\inputs.conf
